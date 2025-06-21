@@ -1,0 +1,442 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AHP Calculator - SPK Bahan Bakar</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script> 
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .page { display: none; }
+        .page.active { display: block; animation: fadeIn 0.5s; }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .comparison-slider {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            height: 8px;
+            background: #d3d3d3; 
+            outline: none;
+            opacity: 0.7;
+            transition: opacity .2s;
+            border-radius: 5px;
+        }
+        .comparison-slider:hover { opacity: 1; }
+        .comparison-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 20px;
+            height: 20px;
+            background: #4f46e5;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+        .comparison-slider::-moz-range-thumb {
+            width: 20px;
+            height: 20px;
+            background: #4f46e5;
+            cursor: pointer;
+            border-radius: 50%;
+        }
+    </style>
+</head>
+<body class="bg-gray-100">
+<div class="w-full max-w-4xl mx-auto p-4 md:p-8">
+    <!-- Login Page -->
+    <div id="login" class="page active bg-white p-8 rounded-xl shadow-lg">
+        <div class="text-center mb-8">
+            <h2 class="text-xl font-semibold text-gray-800">Sistem Pendukung Keputusan Pemilihan Bahan Bakar</h2>
+            <p class="text-base font-medium text-gray-500 mt-1">PT CHAROEN POKPHAND INDONESIA TBK CABANG BIMA</p>
+        </div>
+        <h1 class="text-3xl font-bold text-gray-800 mb-2">Selamat Datang</h1>
+        <p class="text-gray-500 mb-6">Silakan masuk untuk mengakses dashboard Anda.</p>
+        <div class="space-y-4">
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                <input type="text" id="username" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="username_anda">
+            </div>
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                <input type="password" id="password" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm placeholder-gray-400 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm" placeholder="••••••••">
+            </div>
+            <button onclick="showPage('dashboard')" class="w-full bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 transition-colors duration-300">Login</button>
+        </div>
+    </div>
+
+    <!-- Dashboard Page -->
+    <div id="dashboard" class="page bg-white p-8 rounded-xl shadow-lg">
+        <h2 class="text-3xl font-bold text-gray-800 mb-4">Dashboard</h2>
+        <p class="text-gray-600 mb-8">Selamat datang di Sistem Pendukung Keputusan (SPK) dengan metode AHP.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button onclick="showPage('inputData')" class="bg-blue-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-blue-600">Mulai Perhitungan</button>
+            <button onclick="showPage('login')" class="bg-gray-500 text-white font-bold py-4 px-6 rounded-lg hover:bg-gray-600">Logout</button>
+        </div>
+    </div>
+
+    <!-- Input Data Page -->
+    <div id="inputData" class="page bg-white p-8 rounded-xl shadow-lg">
+        <h2 class="text-3xl font-bold text-gray-800 mb-2">Langkah 1: Input Kriteria & Alternatif</h2>
+        <p class="text-sm text-gray-500 mb-6">Data telah disesuaikan dengan studi kasus.</p>
+
+        <!-- Criteria Section -->
+        <div class="mb-8">
+            <h3 class="text-xl font-semibold text-gray-700 mb-3">Kriteria</h3>
+            <div id="criteriaContainer" class="space-y-2">
+                <input type="text" readonly class="input-kriteria mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" value="Efisiensi Energi">
+                <input type="text" readonly class="input-kriteria mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" value="Biaya Pengeringan">
+                <input type="text" readonly class="input-kriteria mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" value="Suhu Pembakaran">
+                <input type="text" readonly class="input-kriteria mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" value="Ketersediaan Bahan">
+            </div>
+        </div>
+
+        <!-- Alternatives Section -->
+        <div>
+            <h3 class="text-xl font-semibold text-gray-700 mb-3">Alternatif</h3>
+            <div id="alternativesContainer" class="space-y-2">
+                <input type="text" readonly class="input-alternatif mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" value="Cangkang Sawit">
+                <input type="text" readonly class="input-alternatif mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" value="Woodchips">
+                <input type="text" readonly class="input-alternatif mt-1 block w-full px-3 py-2 bg-gray-100 border border-gray-300 rounded-md shadow-sm" value="Bonggol Jagung">
+            </div>
+        </div>
+
+        <div class="flex justify-between mt-8">
+            <button onclick="showPage('dashboard')" class="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors duration-300">Kembali ke Dashboard</button>
+            <button onclick="generateComparisonPage()" class="bg-green-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-green-700">Lanjut ke Perbandingan</button>
+        </div>
+    </div>
+
+    <!-- Pairwise Comparison Page -->
+    <div id="comparisonPage" class="page bg-white p-8 rounded-xl shadow-lg">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Langkah 2: Perbandingan Berpasangan</h2>
+        <p class="text-sm text-gray-500 mb-6 -mt-4">Perbandingan kriteria telah diisi otomatis. Silakan lanjutkan dengan mengisi perbandingan untuk setiap alternatif.</p>
+        <div id="comparisonFormsContainer" class="space-y-10"></div>
+        <div class="flex justify-between mt-8">
+            <button onclick="showPage('inputData')" class="bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300 transition-colors duration-300">Kembali ke Input</button>
+            <button onclick="calculateAHP()" class="bg-indigo-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-indigo-700">Hitung & Lihat Hasil</button>
+        </div>
+    </div>
+
+    <!-- AHP Results Page -->
+    <div id="hasilAHP" class="page bg-white p-8 rounded-xl shadow-lg">
+        <h2 class="text-3xl font-bold text-gray-800 mb-6">Langkah 3: Hasil Perhitungan AHP</h2>
+        <div id="resultsContainer" class="space-y-8"></div>
+        <div class="mt-8 text-center">
+            <button onclick="showPage('dashboard')" class="bg-indigo-600 text-white font-bold py-3 px-6 rounded-lg hover:bg-indigo-700">Selesai (Kembali ke Dashboard)</button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Error -->
+<div id="errorModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden flex items-center justify-center">
+    <div class="bg-white p-8 rounded-lg shadow-xl max-w-sm mx-auto">
+        <h3 class="text-xl font-bold text-red-600 mb-4">Error</h3>
+        <p id="errorMessage" class="text-gray-700"></p>
+        <div class="mt-6 text-right">
+            <button onclick="closeModal()" class="px-4 py-2 bg-red-500 text-white rounded hover:bg-red-600">Close</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- GLOBAL STATE ---
+let criteria = [];
+let alternatives = [];
+const RI = { 1: 0, 2: 0, 3: 0.58, 4: 0.9, 5: 1.12, 6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49 };
+
+// --- NAVIGATION ---
+function showPage(pageId) {
+    document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+    document.getElementById(pageId)?.classList.add('active');
+}
+
+function showError(message) {
+    document.getElementById('errorMessage').innerText = message;
+    document.getElementById('errorModal').classList.remove('hidden');
+}
+
+function closeModal() {
+    document.getElementById('errorModal').classList.add('hidden');
+}
+
+function updateSliderValue(sliderId, outputId, item1, item2) {
+    const slider = document.getElementById(sliderId);
+    const output = document.getElementById(outputId);
+    const value = parseInt(slider.value);
+    if (value === 0) {
+        output.innerHTML = `${item1} <span class="font-bold text-indigo-600">sama penting</span> dengan ${item2}`;
+    } else if (value > 0) {
+        output.innerHTML = `${item1} <span class="font-bold text-indigo-600">${value + 1}x lebih penting</span> dari ${item2}`;
+    } else {
+        const inverseValue = Math.abs(value) + 1;
+        output.innerHTML = `${item2} <span class="font-bold text-indigo-600">${inverseValue}x lebih penting</span> dari ${item1}`;
+    }
+}
+
+// --- AHP LOGIC ---
+function generateComparisonPage() {
+    criteria = Array.from(document.querySelectorAll('.input-kriteria')).map(i => i.value).filter(Boolean);
+    alternatives = Array.from(document.querySelectorAll('.input-alternatif')).map(i => i.value).filter(Boolean);
+
+    if (criteria.length < 2 || alternatives.length < 2) {
+        showError("Mohon masukkan minimal 2 kriteria dan 2 alternatif.");
+        return;
+    }
+
+    const container = document.getElementById('comparisonFormsContainer');
+    container.innerHTML = '';
+    container.appendChild(createComparisonForm('Kriteria', criteria));
+    criteria.forEach(criterion => {
+        const title = `Alternatif berdasarkan Kriteria: <span class="font-bold">${criterion}</span>`;
+        container.appendChild(createComparisonForm(criterion, alternatives, title));
+    });
+
+    prefillStudyCaseData();
+    showPage('comparisonPage');
+}
+
+function createComparisonForm(idPrefix, items, titleText) {
+    const formWrapper = document.createElement('div');
+    formWrapper.className = "p-6 border border-gray-200 rounded-lg";
+    const title = document.createElement('h3');
+    title.className = "text-xl font-semibold text-gray-700 mb-5";
+    title.innerHTML = titleText || `Perbandingan antar ${idPrefix}`;
+    formWrapper.appendChild(title);
+
+    const grid = document.createElement('div');
+    grid.className = "space-y-6";
+
+    for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+            const item1 = items[i];
+            const item2 = items[j];
+            const sliderId = `${idPrefix.replace(/\s+/g, '-')}-${i}-${j}`;
+            const outputId = `output-${sliderId}`;
+
+            const row = document.createElement('div');
+            row.className = "grid grid-cols-1 md:grid-cols-2 gap-4 items-center";
+
+            const label = document.createElement('label');
+            label.setAttribute('for', sliderId);
+            label.className = "text-sm font-medium text-gray-600";
+            label.textContent = `${item1} vs ${item2}`;
+            row.appendChild(label);
+
+            const sliderContainer = document.createElement('div');
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.id = sliderId;
+            slider.min = "-8";
+            slider.max = "8";
+            slider.step = "1";
+            slider.value = "0";
+            slider.className = "comparison-slider";
+            slider.oninput = () => updateSliderValue(sliderId, outputId, item1, item2);
+
+            const output = document.createElement('p');
+            output.id = outputId;
+            output.className = "text-center text-sm text-gray-500 mt-1";
+
+            sliderContainer.appendChild(slider);
+            sliderContainer.appendChild(output);
+            row.appendChild(sliderContainer);
+            grid.appendChild(row);
+        }
+    }
+
+    formWrapper.appendChild(grid);
+    return formWrapper;
+}
+
+function buildMatrixFromForm(idPrefix, items) {
+    const n = items.length;
+    const matrix = Array(n).fill(0).map(() => Array(n).fill(0));
+    for (let i = 0; i < n; i++) {
+        matrix[i][i] = 1;
+        for (let j = i + 1; j < n; j++) {
+            const sliderId = `${idPrefix.replace(/\s+/g, '-')}-${i}-${j}`;
+            const slider = document.getElementById(sliderId);
+            let val = parseInt(slider.value);
+            if (val >= 0) {
+                matrix[i][j] = val + 1;
+                matrix[j][i] = 1 / (val + 1);
+            } else {
+                matrix[j][i] = Math.abs(val) + 1;
+                matrix[i][j] = 1 / (Math.abs(val) + 1);
+            }
+        }
+    }
+    return matrix;
+}
+
+function calculateWeightsAndConsistency(matrix) {
+    const n = matrix.length;
+    if (n === 0) return { weights: [], CR: 0 };
+    
+    const colSums = Array(n).fill(0);
+    for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+            colSums[j] += matrix[i][j];
+        }
+    }
+
+    const normMatrix = matrix.map(row => [...row]);
+    for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+            normMatrix[i][j] /= colSums[j];
+        }
+    }
+
+    const weights = normMatrix.map(row => row.reduce((a,b) => a + b, 0) / n);
+
+    if (n <= 1) return { weights, CR: 0 };
+
+    const weightedSum = Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+            weightedSum[i] += matrix[i][j] * weights[j];
+        }
+    }
+
+    const lambdaVector = weightedSum.map((val, idx) => weights[idx] === 0 ? 0 : val / weights[idx]);
+    const lambdaMax = lambdaVector.reduce((a,b) => a + b, 0) / n;
+    const CI = n > 1 ? (lambdaMax - n) / (n - 1) : 0;
+    const CR = (n > 2) ? CI / RI[n] : 0;
+
+    return { weights, CR };
+}
+
+function prefillStudyCaseData() {
+    const comparisons = {
+        "Kriteria-0-1": 2,
+        "Kriteria-0-2": 4,
+        "Kriteria-0-3": 6,
+        "Kriteria-1-2": 2,
+        "Kriteria-1-3": 4,
+        "Kriteria-2-3": 2,
+    };
+    for (const key in comparisons) {
+        const el = document.getElementById(key);
+        if (el) {
+            el.value = comparisons[key];
+            el.dispatchEvent(new Event('input'));
+        }
+    }
+}
+
+function createComparisonForm(idPrefix, items, titleText) {
+    const formWrapper = document.createElement('div');
+    formWrapper.className = "p-6 border border-gray-200 rounded-lg";
+    const title = document.createElement('h3');
+    title.className = "text-xl font-semibold text-gray-700 mb-5";
+    title.innerHTML = titleText || `Perbandingan antar ${idPrefix}`;
+    formWrapper.appendChild(title);
+    const grid = document.createElement('div');
+    grid.className = "space-y-6";
+    for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+            const item1 = items[i];
+            const item2 = items[j];
+            const sliderId = `${idPrefix.replace(/\s+/g, '-')}-${i}-${j}`;
+            const outputId = `output-${sliderId}`;
+            const row = document.createElement('div');
+            row.className = "grid grid-cols-1 md:grid-cols-2 gap-4 items-center";
+            const label = document.createElement('label');
+            label.setAttribute('for', sliderId);
+            label.className = "text-sm font-medium text-gray-600";
+            label.textContent = `${item1} vs ${item2}`;
+            row.appendChild(label);
+            const sliderContainer = document.createElement('div');
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.id = sliderId;
+            slider.min = "-8";
+            slider.max = "8";
+            slider.step = "1";
+            slider.value = "0";
+            slider.className = "comparison-slider";
+            slider.oninput = () => updateSliderValue(sliderId, outputId, item1, item2);
+            const output = document.createElement('p');
+            output.id = outputId;
+            output.className = "text-center text-sm text-gray-500 mt-1";
+            sliderContainer.appendChild(slider);
+            sliderContainer.appendChild(output);
+            row.appendChild(sliderContainer);
+            grid.appendChild(row);
+        }
+    }
+    formWrapper.appendChild(grid);
+    return formWrapper;
+}
+
+function calculateAHP() {
+    const criteriaMatrix = buildMatrixFromForm('Kriteria', criteria);
+    const criteriaResult = calculateWeightsAndConsistency(criteriaMatrix);
+    if (criteriaResult.CR > 0.1) {
+        showError(`Perbandingan kriteria tidak konsisten (CR = ${criteriaResult.CR.toFixed(3)}). Mohon perbaiki.`);
+        return;
+    }
+
+    const alternativeWeightsMatrix = [];
+    for (const crit of criteria) {
+        const altMatrix = buildMatrixFromForm(crit, alternatives);
+        const altResult = calculateWeightsAndConsistency(altMatrix);
+        if (altResult.CR > 0.1) {
+            showError(`Perbandingan alternatif untuk "${crit}" tidak konsisten (CR = ${altResult.CR.toFixed(3)}). Mohon perbaiki.`);
+            return;
+        }
+        alternativeWeightsMatrix.push(altResult.weights);
+    }
+
+    if (!alternativeWeightsMatrix[0]) {
+        showError("Gagal menghitung bobot alternatif.");
+        return;
+    }
+
+    const transposed = alternativeWeightsMatrix[0].map((_, colIndex) => 
+        alternativeWeightsMatrix.map(row => row[colIndex])
+    );
+    const finalScores = alternatives.map((_, idx) => {
+        return transposed[idx].reduce((total, weight, cIdx) => total + weight * criteriaResult.weights[cIdx], 0);
+    });
+
+    const rankedResults = alternatives.map((name, idx) => ({ name, score: finalScores[idx] }))
+        .sort((a, b) => b.score - a.score);
+
+    displayResults(criteriaResult, rankedResults);
+    showPage('hasilAHP');
+}
+
+function displayResults(criteriaResult, rankedResults) {
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = `
+        <div class="p-4 border rounded-lg">
+            <h4 class="text-lg font-semibold mb-3">Bobot Kriteria (CR = ${criteriaResult.CR.toFixed(3)})</h4>
+            <ul class="list-disc list-inside">
+                ${criteria.map((name, i) => `<li><span class="font-medium">${name}:</span> ${(criteriaResult.weights[i] * 100).toFixed(2)}%</li>`).join('')}
+            </ul>
+        </div>
+        <div class="p-4 border rounded-lg mt-6">
+            <h4 class="text-lg font-semibold mb-3">Peringkat Akhir Alternatif</h4>
+            <table class="w-full text-left">
+                <thead><tr class="border-b"><th class="py-2 px-2">Peringkat</th><th class="px-2">Alternatif</th><th class="px-2">Skor</th></tr></thead>
+                <tbody>
+                    ${rankedResults.map((res, i) => {
+                        const isWinner = i === 0 ? 'bg-green-100 font-bold' : '';
+                        return `<tr class="border-b ${isWinner}">
+                            <td class="py-2 px-2">${i+1}</td>
+                            <td class="px-2">${res.name}</td>
+                            <td class="px-2">${res.score.toFixed(4)}</td>
+                        </tr>`;
+                    }).join('')}
+                </tbody>
+            </table>
+        </div>
+    `;
+}
+</script>
+</body>
+</html>
