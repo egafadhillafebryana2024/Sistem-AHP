@@ -1,0 +1,989 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPK & Laporan Proses Pengeringan</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Library untuk PDF & Grafik -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Library untuk Ikon -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+
+    <style>
+        body { font-family: 'Inter', sans-serif; background-color: #f0f2f5; }
+        .page-content { display: none; }
+        .page-content.active { display: block; animation: fadeIn 0.3s ease-in-out; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        .main-container {
+            width: 100%;
+            max-width: 100%;
+            background: #ffffff;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+        }
+        @media (min-width: 768px) {
+            .main-container {
+                max-width: 500px;
+                margin: 1rem auto;
+                border-radius: 1.5rem;
+                box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+                min-height: 95vh;
+                overflow: hidden;
+            }
+        }
+
+        .main-content-area {
+            flex-grow: 1;
+            overflow-y: auto;
+            padding-bottom: 70px; /* Space for nav-bar */
+        }
+        .bottom-nav {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            height: 65px;
+            background: #f8fafc;
+            border-top: 1px solid #e5e7eb;
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+         @media (min-width: 768px) {
+            .bottom-nav {
+                 border-radius: 0 0 1.5rem 1.5rem;
+            }
+        }
+        .nav-item.active svg { color: #4f46e5; }
+        .nav-item.active p { color: #4f46e5; font-weight: 600; }
+
+        /* Styling for AHP tables (for results display) */
+        .ahp-table-wrapper {
+            overflow-x: auto;
+        }
+        .ahp-table {
+            width: 100%;
+            min-width: 400px;
+            border-collapse: collapse;
+            margin-top: 0.75rem;
+            font-size: 0.8rem;
+        }
+        .ahp-table th, .ahp-table td {
+            border: 1px solid #e5e7eb;
+            padding: 0.4rem;
+            text-align: center;
+        }
+        .ahp-table th {
+            background-color: #f3f4f6;
+            font-weight: 600;
+        }
+        .ahp-table td.diagonal {
+            background-color: #e0e7ff;
+            font-weight: 700;
+        }
+        .ahp-table td.locked {
+            background-color: #f3f4f6;
+            color: #6b7280;
+        }
+        .ahp-table tfoot td {
+            font-weight: 700;
+            background-color: #f9fafb;
+        }
+        /* New styling for simplified comparison inputs */
+        .comparison-pair-item select {
+            width: auto; /* Adjust width as needed */
+            padding: 0.25rem;
+            border: 1px solid #d1d5db;
+            border-radius: 0.25rem;
+            background-color: #ffffff;
+            min-width: 80px; /* Ensure dropdown is wide enough */
+        }
+    </style>
+</head>
+<body>
+
+<!-- ================================================== -->
+<!--                HALAMAN LOGIN CONTAINER               -->
+<!-- ================================================== -->
+<div id="loginContainer" class="flex items-center justify-center min-h-screen p-4">
+    <div class="w-full max-w-md">
+        <div class="text-center w-full mb-8">
+            <img src="https://companieslogo.com/img/orig/CPIN.JK_BIG-222f07df.png" alt="Logo PT Charoen Pokphand Indonesia" class="mx-auto mb-4 w-40 h-auto object-contain">
+            <h2 class="text-lg font-semibold text-gray-800">PT CHAROEN POKPHAND INDONESIA</h2>
+        </div>
+        <div class="w-full bg-white p-8 rounded-2xl shadow-lg">
+            <h1 class="text-2xl font-bold text-gray-800 mb-4">Login</h1>
+            <div class="space-y-4">
+                 <div>
+                    <label for="username" class="block text-sm font-medium text-gray-700">Username</label>
+                    <input type="text" id="username" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+                    <input type="password" id="password" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-indigo-500 focus:border-indigo-500">
+                </div>
+                <button onclick="login()" class="w-full flex justify-center items-center bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition-colors">
+                    <i data-lucide="log-in" class="mr-2 h-5 w-5"></i>
+                    <span>Login</span>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- ================================================== -->
+<!--                 MAIN APP CONTAINER                 -->
+<!-- ================================================== -->
+<div id="mainAppContainer" class="main-container relative hidden">
+    <!-- Main scrollable content -->
+    <div class="main-content-area">
+        <!-- Dashboard Page -->
+        <div id="dashboard" class="page-content p-6">
+            <h2 class="text-xl font-bold text-gray-800">Dashboard</h2>
+            <div class="grid grid-cols-2 gap-4 mt-4">
+                <div class="bg-blue-50 p-4 rounded-lg flex items-start">
+                    <div class="bg-blue-200 p-2 rounded-full mr-3">
+                        <i data-lucide="flame" class="text-blue-800"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-blue-800 font-medium">Total Proses Hari Ini</p>
+                        <p id="db-total-proses" class="text-3xl font-bold text-blue-900">0</p>
+                    </div>
+                </div>
+                <div class="bg-green-50 p-4 rounded-lg flex items-start">
+                    <div class="bg-green-200 p-2 rounded-full mr-3">
+                        <i data-lucide="leaf" class="text-green-800"></i>
+                    </div>
+                    <div>
+                        <p class="text-xs text-green-800 font-medium">Bahan Paling Efisien</p>
+                        <p id="db-bahan-efisien" class="text-lg font-bold text-green-900">-</p>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-md font-semibold text-gray-700">Grafik Suhu Rata-rata (°C)</h3>
+                <div class="h-64 mt-2">
+                    <canvas id="suhuChart"></canvas>
+                </div>
+            </div>
+            <div class="mt-6">
+                <h3 class="text-md font-semibold text-gray-700">Grafik Biaya (Rp)</h3>
+                <div class="h-64 mt-2">
+                    <canvas id="biayaChart"></canvas>
+                </div>
+            </div>
+            <div class="mt-6">
+                 <button onclick="showPage('inputDataAHP')" class="w-full flex justify-center items-center bg-purple-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-purple-700 transition-colors">
+                     <i data-lucide="calculator" class="mr-2 h-5 w-5"></i>
+                     <span>Lakukan Analisis AHP</span>
+                 </button>
+            </div>
+        </div>
+
+        <!-- Input Data Proses Page -->
+        <div id="inputProses" class="page-content p-6">
+            <div class="flex items-center mb-6">
+                <button onclick="navigate('dashboard')" class="p-1 rounded-full hover:bg-gray-100"><i data-lucide="arrow-left"></i></button>
+                <h2 class="text-xl font-bold text-gray-800 ml-4">Input Data Pengeringan</h2>
+            </div>
+            <form id="prosesForm" class="space-y-4">
+                <input type="hidden" id="prosesId" value="">
+                <div>
+                    <label for="prosesBahanBakar" class="block text-sm font-medium text-gray-700">Jenis Bahan Bakar</label>
+                    <select id="prosesBahanBakar" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md"></select>
+                </div>
+                 <div>
+                    <label for="prosesSuhu" class="block text-sm font-medium text-gray-700">Suhu Pembakaran (°C)</label>
+                    <input type="number" id="prosesSuhu" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md" required>
+                </div>
+                <div>
+                    <label for="prosesBiaya" class="block text-sm font-medium text-gray-700">Biaya (Rp)</label>
+                    <input type="number" id="prosesBiaya" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md" required>
+                </div>
+                 <div>
+                    <label for="prosesKonsumsi" class="block text-sm font-medium text-gray-700">Konsumsi Bahan Bakar (Kg)</label>
+                    <input type="number" id="prosesKonsumsi" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md" required>
+                </div>
+                <div>
+                    <label for="prosesWaktu" class="block text-sm font-medium text-gray-700">Waktu Pengeringan (Jam)</label>
+                    <input type="number" id="prosesWaktu" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md" required>
+                </div>
+                <div>
+                    <label for="prosesOutput" class="block text-sm font-medium text-gray-700">Total Output (Kg Jagung Kering)</label>
+                    <input type="number" id="prosesOutput" class="mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md" required>
+                </div>
+                <button id="simpanBtn" onclick="simpanDataProses()" type="button" class="w-full flex justify-center items-center bg-blue-600 text-white font-bold py-3 px-4 rounded-lg mt-4">
+                    <i data-lucide="save" class="mr-2 h-5 w-5"></i>
+                    <span>Simpan Data</span>
+                </button>
+            </form>
+        </div>
+
+        <!-- Laporan Proses Page -->
+        <div id="laporanProses" class="page-content p-6">
+            <h2 class="text-xl font-bold text-gray-800 mb-4">Laporan Proses</h2>
+            <div id="laporanContainer" class="space-y-3"></div>
+             <p id="laporanKosong" class="text-center text-gray-500 mt-10 hidden">Belum ada data laporan.</p>
+        </div>
+
+        <!-- AHP Pages -->
+        <div id="inputDataAHP" class="page-content p-6">
+            <div class="flex items-center mb-6">
+                 <button onclick="navigate('dashboard')" class="p-1 rounded-full hover:bg-gray-100"><i data-lucide="arrow-left"></i></button>
+                <h2 class="text-xl font-bold text-gray-800 ml-4">Analisis AHP</h2>
+            </div>
+            <div class="mb-6 p-4 border rounded-lg bg-indigo-50">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Kriteria</h3>
+                <div id="criteriaContainer" class="space-y-2"></div>
+                <button onclick="addCriterion()" class="mt-3 text-sm text-indigo-600 font-medium flex items-center"><i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Tambah Kriteria</button>
+            </div>
+            <div class="mb-6 p-4 border rounded-lg bg-green-50">
+                <h3 class="text-lg font-semibold text-gray-700 mb-3">Alternatif</h3>
+                <div id="alternativesContainer" class="space-y-2"></div>
+                <button onclick="addAlternative()" class="mt-3 text-sm text-green-600 font-medium flex items-center"><i data-lucide="plus-circle" class="w-4 h-4 mr-1"></i> Tambah Alternatif</button>
+            </div>
+            <button onclick="generateComparisonPage()" class="w-full flex justify-center items-center bg-purple-600 text-white font-bold py-3 px-4 rounded-lg">
+                <i data-lucide="play" class="mr-2 h-5 w-5"></i>
+                <span>Mulai Perbandingan</span>
+            </button>
+        </div>
+
+        <div id="comparisonPage" class="page-content p-6">
+            <div class="flex items-center mb-6">
+                 <button onclick="showPage('inputDataAHP')" class="p-1 rounded-full hover:bg-gray-100"><i data-lucide="arrow-left"></i></button>
+                <h2 class="text-xl font-bold text-gray-800 ml-4">Perbandingan AHP</h2>
+            </div>
+             <p class="text-sm text-gray-500 -mt-4 mb-6">
+                Isi semua perbandingan. Nilai 1 berarti sama penting, 9 berarti jauh lebih penting.
+             </p>
+            <div id="comparisonFormsContainer" class="space-y-8"></div>
+            <button onclick="calculateAHP()" class="w-full flex justify-center items-center bg-indigo-600 text-white font-bold py-3 px-4 rounded-lg mt-6">
+                <i data-lucide="check-circle" class="mr-2 h-5 w-5"></i>
+                <span>Hitung Hasil AHP</span>
+            </button>
+        </div>
+
+        <div id="hasilAHP" class="page-content p-6">
+            <div class="flex items-center mb-6">
+                 <button onclick="showPage('comparisonPage')" class="p-1 rounded-full hover:bg-gray-100"><i data-lucide="arrow-left"></i></button>
+                <h2 class="text-xl font-bold text-gray-800 ml-4">Hasil Perhitungan AHP</h2>
+            </div>
+            <div id="resultsToPrint" class="bg-gray-50 p-4 rounded-lg">
+                <div id="resultsContainer" class="space-y-6"></div>
+            </div>
+            <button id="downloadPdfBtn" onclick="downloadResultsAsPDF()" class="w-full flex justify-center items-center bg-red-600 text-white font-bold py-3 px-4 rounded-lg mt-6">
+                <i data-lucide="download" class="mr-2 h-5 w-5"></i>
+                <span>Unduh Hasil (PDF)</span>
+            </button>
+        </div>
+    </div>
+
+    <!-- Bottom Navigation -->
+    <div id="bottomNavContainer" class="bottom-nav">
+        <div id="nav-dashboard" onclick="navigate('dashboard')" class="nav-item text-center text-gray-500 p-2 cursor-pointer">
+            <i data-lucide="layout-dashboard" class="mx-auto"></i>
+            <p class="text-xs mt-1">Dashboard</p>
+        </div>
+        <div id="nav-inputProses" onclick="navigate('inputProses')" class="nav-item text-center text-gray-500 p-2 cursor-pointer">
+            <i data-lucide="file-plus-2" class="mx-auto"></i>
+            <p class="text-xs mt-1">Input</p>
+        </div>
+        <div id="nav-laporanProses" onclick="navigate('laporanProses')" class="nav-item text-center text-gray-500 p-2 cursor-pointer">
+            <i data-lucide="bar-chart-3" class="mx-auto"></i>
+            <p class="text-xs mt-1">Laporan</p>
+        </div>
+        <div id="nav-logout" onclick="logout()" class="nav-item text-center text-gray-500 p-2 cursor-pointer">
+            <i data-lucide="log-out" class="mx-auto"></i>
+            <p class="text-xs mt-1">Logout</p>
+        </div>
+    </div>
+</div>
+
+<!-- Modal -->
+<div id="messageModal" class="fixed inset-0 bg-black bg-opacity-50 hidden items-center justify-center z-50">
+    <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm mx-4">
+        <h3 id="modalTitle" class="text-lg font-bold mb-2"></h3>
+        <p id="modalMessage" class="text-sm text-gray-600"></p>
+        <div class="mt-4 text-right">
+            <button onclick="closeModal()" class="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm">Tutup</button>
+        </div>
+    </div>
+</div>
+
+<script>
+// --- CONFIGURATION AND STATE ---
+window.jsPDF = window.jspdf.jsPDF;
+let criteria = ["Efisiensi Energi", "Biaya Pengeringan", "Suhu Pembakaran", "Ketersediaan Bahan"];
+let alternatives = [];
+let prosesPengeringanData = [
+    { id: 1, tanggal: new Date(2025, 6, 1).toLocaleDateString('id-ID'), bahanBakar: "Bonggol Jagung", suhu: 80, waktu: 5, biaya: 150000, konsumsi: 20, output: 100 },
+    { id: 2, tanggal: new Date(2025, 6, 2).toLocaleDateString('id-ID'), bahanBakar: "Woodchips", suhu: 75, waktu: 6, biaya: 180000, konsumsi: 25, output: 90 },
+    { id: 3, tanggal: new Date(2025, 6, 3).toLocaleDateString('id-ID'), bahanBakar: "Cangkang Sawit", suhu: 85, waktu: 4, biaya: 120000, konsumsi: 18, output: 110 },
+];
+let suhuChart, biayaChart;
+const RI = { 1: 0, 2: 0, 3: 0.58, 4: 0.9, 5: 1.12, 6: 1.24, 7: 1.32, 8: 1.41, 9: 1.45, 10: 1.49 };
+const saatyScale = [
+    { value: 1/9, text: '1/9' }, { value: 1/8, text: '1/8' }, { value: 1/7, text: '1/7' },
+    { value: 1/6, text: '1/6' }, { value: 1/5, text: '1/5' }, { value: 1/4, text: '1/4' },
+    { value: 1/3, text: '1/3' }, { value: 1/2, text: '1/2' }, { value: 1, text: '1' },
+    { value: 2, text: '2' }, { value: 3, text: '3' }, { value: 4, text: '4' },
+    { value: 5, text: '5' }, { value: 6, text: '6' }, { value: 7, text: '7' },
+    { value: 8, text: '8' }, { value: 9, text: '9' }
+];
+
+// --- INIT & NAVIGATION FUNCTIONS ---
+document.addEventListener('DOMContentLoaded', () => {
+    // Set initial state: show login, hide app
+    document.getElementById('loginContainer').classList.remove('hidden');
+    document.getElementById('mainAppContainer').classList.add('hidden');
+
+    initializeAHPInputs();
+    renderCriteriaInputs();
+    lucide.createIcons();
+});
+
+function login() {
+    const user = document.getElementById('username').value;
+    const pass = document.getElementById('password').value;
+    if (!user || !pass) {
+        showMessage('Login Gagal', 'Username dan password tidak boleh kosong.', true);
+        return;
+    }
+
+    // Hide login page, show main app
+    document.getElementById('loginContainer').classList.add('hidden');
+    document.getElementById('mainAppContainer').classList.remove('hidden');
+
+    // Navigate to the dashboard as the first page
+    navigate('dashboard');
+}
+
+function logout() {
+    // Hide main app, show login page
+    document.getElementById('mainAppContainer').classList.add('hidden');
+    document.getElementById('loginContainer').classList.remove('hidden');
+
+    // Clear password field for security
+    document.getElementById('password').value = '';
+}
+
+function showPage(pageId) {
+    // This function now only operates within the mainAppContainer
+    document.querySelectorAll('#mainAppContainer .page-content').forEach(p => p.classList.remove('active'));
+    const targetPage = document.getElementById(pageId);
+    if(targetPage) {
+        targetPage.classList.add('active');
+        const mainPages = ['dashboard', 'inputProses', 'laporanProses'];
+        if (mainPages.includes(pageId)) {
+            updateNavUI(pageId);
+        } else {
+            document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+        }
+    }
+    lucide.createIcons();
+}
+
+function navigate(pageId) {
+    showPage(pageId);
+    if (pageId === 'inputProses') {
+        document.getElementById('prosesForm').reset();
+        document.getElementById('prosesId').value = '';
+        document.getElementById('simpanBtn').querySelector('span').textContent = 'Simpan Data';
+        populateBahanBakarDropdown();
+    }
+    if (pageId === 'laporanProses') generateAndShowReport();
+    if (pageId === 'dashboard') updateDashboard();
+    if (pageId === 'inputDataAHP') {
+        renderCriteriaInputs();
+        initializeAHPInputs();
+    }
+}
+
+function updateNavUI(activePage) {
+    document.querySelectorAll('.nav-item').forEach(item => item.classList.remove('active'));
+    const activeItem = document.getElementById(`nav-${activePage}`);
+    if(activeItem) activeItem.classList.add('active');
+}
+
+function showMessage(title, message, isError = false, isConfirm = false, onConfirm = null) {
+    document.getElementById('modalTitle').textContent = title;
+    document.getElementById('modalMessage').textContent = message;
+    document.getElementById('modalTitle').className = isError ? 'text-lg font-bold text-red-600 mb-2' : 'text-lg font-bold text-green-600 mb-2';
+    const modalFooter = document.getElementById('messageModal').querySelector('.mt-4.text-right');
+    modalFooter.innerHTML = '';
+
+    if (isConfirm) {
+        const confirmBtn = document.createElement('button');
+        confirmBtn.textContent = 'Ya, Hapus';
+        confirmBtn.className = 'px-4 py-2 bg-red-600 text-white rounded-lg text-sm mr-2';
+        confirmBtn.onclick = onConfirm;
+        modalFooter.appendChild(confirmBtn);
+        const cancelBtn = document.createElement('button');
+        cancelBtn.textContent = 'Batal';
+        cancelBtn.className = 'px-4 py-2 bg-gray-300 text-gray-800 rounded-lg text-sm';
+        cancelBtn.onclick = closeModal;
+        modalFooter.appendChild(cancelBtn);
+    } else {
+        const closeBtn = document.createElement('button');
+        closeBtn.textContent = 'Tutup';
+        closeBtn.className = 'px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm';
+        closeBtn.onclick = closeModal;
+        modalFooter.appendChild(closeBtn);
+    }
+
+    document.getElementById('messageModal').classList.remove('hidden');
+    document.getElementById('messageModal').classList.add('flex');
+}
+
+function closeModal() {
+    document.getElementById('messageModal').classList.add('hidden');
+    document.getElementById('messageModal').classList.remove('flex');
+}
+
+// --- DASHBOARD ---
+function updateDashboard() {
+    const today = new Date().toLocaleDateString('id-ID');
+    const prosesHariIni = prosesPengeringanData.filter(p => p.tanggal === today);
+    document.getElementById('db-total-proses').textContent = prosesHariIni.length;
+
+    if (prosesPengeringanData.length > 0) {
+        const dataWithEfficiency = prosesPengeringanData.map(p => ({
+            ...p,
+            costPerKg: p.output > 0 ? p.biaya / p.output : Infinity
+        }));
+        const palingEfisien = dataWithEfficiency.reduce((p, c) => (p.costPerKg < c.costPerKg) ? p : c);
+        document.getElementById('db-bahan-efisien').textContent = palingEfisien.bahanBakar;
+    } else {
+        document.getElementById('db-bahan-efisien').textContent = 'N/A';
+    }
+
+    const labels = [...new Set(prosesPengeringanData.map(p => p.tanggal))].sort((a,b) => new Date(a.split('/').reverse().join('-')) - new Date(b.split('/').reverse().join('-')));
+    const avgSuhuData = labels.map(label => {
+        const dayData = prosesPengeringanData.filter(p => p.tanggal === label);
+        return dayData.length > 0 ? dayData.reduce((sum, p) => sum + p.suhu, 0) / dayData.length : 0;
+    });
+    const avgBiayaData = labels.map(label => {
+        const dayData = prosesPengeringanData.filter(p => p.tanggal === label);
+        return dayData.length > 0 ? dayData.reduce((sum, p) => sum + p.biaya, 0) / dayData.length : 0;
+    });
+
+    const chartOptions = {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true } }
+    };
+
+    if (suhuChart) suhuChart.destroy();
+    suhuChart = new Chart(document.getElementById('suhuChart'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{ label: 'Suhu', data: avgSuhuData, borderColor: '#3b82f6', tension: 0.4, backgroundColor: 'rgba(59, 130, 246, 0.2)', fill: true }]
+        },
+        options: chartOptions
+    });
+
+    if (biayaChart) biayaChart.destroy();
+    biayaChart = new Chart(document.getElementById('biayaChart'), {
+        type: 'line',
+        data: {
+            labels,
+            datasets: [{ label: 'Biaya', data: avgBiayaData, borderColor: '#10b981', tension: 0.4, backgroundColor: 'rgba(16, 185, 129, 0.2)', fill: true }]
+        },
+        options: chartOptions
+    });
+    lucide.createIcons();
+}
+
+// --- PROCESS DATA MANAGEMENT ---
+function populateBahanBakarDropdown() {
+    const select = document.getElementById('prosesBahanBakar');
+    select.innerHTML = '';
+    alternatives.forEach(alt => {
+        const option = document.createElement('option');
+        option.value = alt;
+        option.textContent = alt;
+        select.appendChild(option);
+    });
+}
+
+function simpanDataProses() {
+    const form = document.getElementById('prosesForm');
+    if (!form.checkValidity()) {
+        showMessage('Error', 'Mohon isi semua field yang wajib diisi.', true);
+        return;
+    }
+    const prosesId = document.getElementById('prosesId').value;
+    const formData = {
+        bahanBakar: document.getElementById('prosesBahanBakar').value,
+        suhu: parseFloat(document.getElementById('prosesSuhu').value),
+        waktu: parseFloat(document.getElementById('prosesWaktu').value),
+        biaya: parseFloat(document.getElementById('prosesBiaya').value),
+        konsumsi: parseFloat(document.getElementById('prosesKonsumsi').value),
+        output: parseFloat(document.getElementById('prosesOutput').value)
+    };
+
+    if (prosesId) {
+        const index = prosesPengeringanData.findIndex(p => p.id == prosesId);
+        if (index > -1) {
+            prosesPengeringanData[index] = { ...prosesPengeringanData[index], ...formData };
+            showMessage('Sukses', 'Data proses berhasil diperbarui.');
+        }
+    } else {
+        const newProses = { id: Date.now(), tanggal: new Date().toLocaleDateString('id-ID'), ...formData };
+        prosesPengeringanData.push(newProses);
+        showMessage('Sukses', 'Data proses berhasil disimpan.');
+    }
+    form.reset();
+    document.getElementById('prosesId').value = '';
+    document.getElementById('simpanBtn').querySelector('span').textContent = 'Simpan Data';
+    navigate('dashboard');
+}
+
+function editProses(id) {
+    const data = prosesPengeringanData.find(p => p.id === id);
+    if (!data) return;
+    showPage('inputProses');
+    document.getElementById('prosesId').value = data.id;
+    populateBahanBakarDropdown();
+    document.getElementById('prosesBahanBakar').value = data.bahanBakar;
+    document.getElementById('prosesSuhu').value = data.suhu;
+    document.getElementById('prosesWaktu').value = data.waktu;
+    document.getElementById('prosesBiaya').value = data.biaya;
+    document.getElementById('prosesKonsumsi').value = data.konsumsi;
+    document.getElementById('prosesOutput').value = data.output;
+    document.getElementById('simpanBtn').querySelector('span').textContent = 'Update Data';
+}
+
+function hapusProses(id) {
+    const confirmDelete = () => {
+        prosesPengeringanData = prosesPengeringanData.filter(p => p.id !== id);
+        generateAndShowReport();
+        closeModal();
+    };
+    showMessage('Konfirmasi Hapus', 'Apakah Anda yakin ingin menghapus data ini?', false, true, confirmDelete);
+}
+
+// --- REPORT ---
+function generateAndShowReport() {
+    const container = document.getElementById('laporanContainer');
+    const placeholder = document.getElementById('laporanKosong');
+    container.innerHTML = '';
+    if (prosesPengeringanData.length === 0) {
+        placeholder.classList.remove('hidden');
+        return;
+    }
+    placeholder.classList.add('hidden');
+    const sortedData = [...prosesPengeringanData].sort((a,b) => b.id - a.id);
+    sortedData.forEach(p => {
+        const card = document.createElement('div');
+        card.className = "bg-white border rounded-lg p-4 space-y-2";
+        card.innerHTML = `
+            <div class="flex justify-between items-start">
+                <div>
+                    <p class="font-bold text-lg">${p.bahanBakar}</p>
+                    <p class="text-xs text-gray-500">${p.tanggal}</p>
+                </div>
+                <div class="flex space-x-2">
+                    <button onclick="editProses(${p.id})" class="p-1 text-blue-600 hover:bg-blue-100 rounded-full"><i data-lucide="file-pen-line"></i></button>
+                    <button onclick="hapusProses(${p.id})" class="p-1 text-red-600 hover:bg-red-100 rounded-full"><i data-lucide="trash-2"></i></button>
+                </div>
+            </div>
+            <div class="grid grid-cols-2 gap-2 text-sm pt-2 border-t mt-2">
+                <p><strong class="font-medium">Waktu:</strong> ${p.waktu} jam</p>
+                <p><strong class="font-medium">Suhu:</strong> ${p.suhu}°C</p>
+                <p><strong class="font-medium">Biaya:</strong> Rp ${p.biaya.toLocaleString('id-ID')}</p>
+                <p><strong class="font-medium">Konsumsi:</strong> ${p.konsumsi} Kg</p>
+                <p><strong class="font-medium">Output:</strong> ${p.output} Kg</p>
+            </div>
+        `;
+        container.appendChild(card);
+    });
+    lucide.createIcons();
+    showPage('laporanProses');
+}
+
+// --- AHP LOGIC ---
+function initializeAHPInputs() {
+    const defaultAlternatives = ["Cangkang Sawit", "Woodchips", "Bonggol Jagung"];
+    const container = document.getElementById('alternativesContainer');
+    container.innerHTML = '';
+    if (alternatives.length === 0) {
+        defaultAlternatives.forEach(alt => addAlternative(alt));
+    } else {
+        alternatives.forEach(alt => addAlternative(alt));
+    }
+    updateAlternativesArray();
+}
+
+function addAlternative(value = '') {
+    const container = document.getElementById('alternativesContainer');
+    const div = document.createElement('div');
+    div.className = 'flex items-center space-x-2';
+    const input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'input-alternatif mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md';
+    input.value = value;
+    if(!value) input.placeholder = 'Nama Alternatif Baru...';
+    input.oninput = updateAlternativesArray;
+    const button = document.createElement('button');
+    button.innerHTML = '<i data-lucide="x-circle" class="w-5 h-5 text-red-500 hover:text-red-700"></i>';
+    button.onclick = () => { div.remove(); updateAlternativesArray(); };
+    div.appendChild(input);
+    div.appendChild(button);
+    container.appendChild(div);
+    updateAlternativesArray();
+    lucide.createIcons();
+}
+
+function updateAlternativesArray() {
+    alternatives = Array.from(document.querySelectorAll('#alternativesContainer .input-alternatif'))
+                     .map(i => i.value.trim()).filter(Boolean);
+}
+
+function renderCriteriaInputs() {
+    const container = document.getElementById('criteriaContainer');
+    container.innerHTML = '';
+    criteria.forEach((crit, index) => {
+        const div = document.createElement('div');
+        div.className = 'flex items-center space-x-2';
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.className = 'input-criterion mt-1 block w-full px-3 py-2 bg-white border border-gray-300 rounded-md';
+        input.value = crit;
+        input.oninput = updateCriteriaArray;
+        const button = document.createElement('button');
+        button.innerHTML = '<i data-lucide="x-circle" class="w-5 h-5 text-red-500 hover:text-red-700"></i>';
+        button.onclick = () => removeCriterion(index);
+        div.appendChild(input);
+        div.appendChild(button);
+        container.appendChild(div);
+    });
+    lucide.createIcons();
+}
+
+function addCriterion() {
+    criteria.push('');
+    renderCriteriaInputs();
+    document.querySelectorAll('#criteriaContainer .input-criterion:last-child')[0].focus();
+}
+
+function removeCriterion(index) {
+    if (criteria.length <= 2) {
+        showMessage("Error", "Minimal harus ada 2 kriteria.", true);
+        return;
+    }
+    criteria.splice(index, 1);
+    renderCriteriaInputs();
+}
+
+function updateCriteriaArray() {
+    criteria = Array.from(document.querySelectorAll('#criteriaContainer .input-criterion'))
+                     .map(i => i.value.trim()).filter(Boolean);
+}
+
+function generateComparisonPage() {
+    if (alternatives.length < 2 || criteria.length < 2) {
+        showMessage("Error", "Mohon masukkan minimal 2 kriteria dan 2 alternatif.", true);
+        return;
+    }
+    const container = document.getElementById('comparisonFormsContainer');
+    container.innerHTML = '';
+    container.appendChild(createComparisonForm('Kriteria', criteria, 'Perbandingan antar Kriteria'));
+    criteria.forEach(criterion => {
+        const title = `Perbandingan Alternatif untuk: <span class="font-bold text-indigo-700">${criterion}</span>`;
+        container.appendChild(createComparisonForm(criterion, alternatives, title));
+    });
+    initializeAllComparisons();
+    showPage('comparisonPage');
+}
+
+// Modified createComparisonForm to generate pairwise comparison list
+function createComparisonForm(idPrefix, items, titleText) {
+    const formWrapper = document.createElement('div');
+    formWrapper.className = "p-4 border rounded-lg bg-gray-50"; // Removed ahp-table-wrapper as it's not a table anymore
+    const title = document.createElement('h3');
+    title.className = "text-md font-semibold text-gray-700 mb-4";
+    title.innerHTML = titleText;
+    formWrapper.appendChild(title);
+
+    const comparisonList = document.createElement('div');
+    comparisonList.className = 'space-y-3'; // Add spacing between comparison pairs
+
+    for (let i = 0; i < items.length; i++) {
+        for (let j = i + 1; j < items.length; j++) {
+            const safeIdPrefix = idPrefix.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+            const elementId = `${safeIdPrefix}-comp-${i}-${j}`; // Unique ID for each comparison dropdown
+
+            const pairDiv = document.createElement('div');
+            pairDiv.className = 'flex items-center justify-between p-2 bg-white rounded-md border comparison-pair-item';
+
+            const comparisonText = document.createElement('span');
+            comparisonText.className = 'text-sm font-medium text-gray-800';
+            comparisonText.textContent = `${items[i]} vs ${items[j]}`;
+            pairDiv.appendChild(comparisonText);
+
+            let selectHTML = `<select id="${elementId}">`;
+            saatyScale.forEach(opt => {
+                selectHTML += `<option value="${opt.value}" ${opt.value === 1 ? 'selected' : ''}>${opt.text}</option>`;
+            });
+            selectHTML += '</select>';
+            pairDiv.innerHTML += selectHTML; // Append select element
+
+            comparisonList.appendChild(pairDiv);
+        }
+    }
+    formWrapper.appendChild(comparisonList);
+    return formWrapper;
+}
+
+// updateTableValue is no longer directly used for UI updates, but buildMatrixFromForm will handle reciprocals
+// function updateTableValue(selectElement, idPrefix, i, j) {
+//     // This function is no longer needed for UI updates as reciprocals are not displayed
+// }
+
+function initializeAllComparisons() {
+    // Set initial values for all dropdowns
+    document.querySelectorAll('#comparisonFormsContainer select').forEach(select => {
+        select.value = "1"; // Set default to 1
+    });
+}
+
+function calculateAHP() {
+    const criteriaMatrix = buildMatrixFromForm('Kriteria', criteria);
+    const criteriaResult = calculateWeightsAndConsistency(criteriaMatrix);
+    if (criteriaResult.CR > 0.1) {
+        showMessage("Peringatan", `Perbandingan kriteria tidak konsisten (CR = ${criteriaResult.CR.toFixed(3)}). Mohon sesuaikan kembali.`, true);
+        return;
+    }
+
+    const alternativeResults = {};
+    let inconsistentAlt = null;
+    for (const crit of criteria) {
+        const altMatrix = buildMatrixFromForm(crit, alternatives);
+        const altResult = calculateWeightsAndConsistency(altMatrix);
+        if (altResult.CR > 0.1 && !inconsistentAlt) {
+            inconsistentAlt = crit;
+        }
+        alternativeResults[crit] = { matrix: altMatrix, result: altResult };
+    }
+
+    if (inconsistentAlt) {
+        showMessage("Peringatan", `Perbandingan alternatif untuk "${inconsistentAlt}" tidak konsisten (CR > 0.1). Hasil mungkin tidak akurat.`, true);
+    }
+
+    const finalScores = alternatives.map((alt, altIdx) => {
+        let totalScore = 0;
+        criteria.forEach((crit, critIdx) => {
+            const criteriaWeight = criteriaResult.weights[critIdx];
+            const alternativeWeight = alternativeResults[crit].result.weights[altIdx];
+            totalScore += criteriaWeight * alternativeWeight;
+        });
+        return { name: alt, score: totalScore };
+    });
+
+    const rankedResults = finalScores.sort((a, b) => b.score - a.score);
+
+    displayResultsAHP({
+        criteria: { matrix: criteriaMatrix, result: criteriaResult },
+        alternatives: alternativeResults,
+        ranked: rankedResults
+    });
+    showPage('hasilAHP');
+}
+
+// Modified buildMatrixFromForm to read from pairwise comparison inputs
+function buildMatrixFromForm(idPrefix, items) {
+    const n = items.length;
+    const matrix = Array(n).fill(0).map(() => Array(n).fill(1)); // Initialize with 1s on diagonal
+    const safeIdPrefix = idPrefix.replace(/\s+/g, '-').replace(/[^a-zA-Z0-9-]/g, '');
+
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            const elementId = `${safeIdPrefix}-comp-${i}-${j}`;
+            const select = document.getElementById(elementId);
+            let val = select ? parseFloat(select.value) : 1; // Default to 1 if not found
+            matrix[i][j] = val;
+            matrix[j][i] = 1 / val; // Calculate reciprocal
+        }
+    }
+    return matrix;
+}
+
+function calculateWeightsAndConsistency(matrix) {
+    const n = matrix.length;
+    if (n === 0) return { weights: [], CR: 0, normMatrix: [], colSums: [] };
+
+    const colSums = Array(n).fill(0);
+    for (let j = 0; j < n; j++) {
+        for (let i = 0; i < n; i++) {
+            colSums[j] += matrix[i][j];
+        }
+    }
+
+    const normMatrix = matrix.map(row => row.map((val, j) => colSums[j] === 0 ? 0 : val / colSums[j]));
+    const weights = normMatrix.map(row => row.reduce((a, b) => a + b, 0) / n);
+
+    if (n <= 2) return { weights, CR: 0, normMatrix, colSums };
+
+    const weightedSum = Array(n).fill(0);
+    for (let i = 0; i < n; i++) {
+        for (let j = 0; j < n; j++) {
+            weightedSum[i] += matrix[i][j] * weights[j];
+        }
+    }
+
+    const lambdaVector = weightedSum.map((val, idx) => weights[idx] === 0 ? 0 : val / weights[idx]);
+    const lambdaMax = lambdaVector.reduce((a, b) => a + b, 0) / n;
+    const CI = (lambdaMax - n) / (n - 1);
+    const CR = n > 2 ? (CI / RI[n]) : 0;
+
+    return { weights, CR, normMatrix, colSums };
+}
+
+function renderMatrixTable(headers, matrix, footerHeaders = null, footerData = null, precision = 3) {
+    let table = '<div class="ahp-table-wrapper"><table class="ahp-table"><thead><tr><th></th>';
+    headers.forEach(h => table += `<th>${h}</th>`);
+    if (footerHeaders) footerHeaders.forEach(h => table += `<th>${h}</th>`);
+    table += '</tr></thead><tbody>';
+    matrix.forEach((row, i) => {
+        table += `<tr><th class="bg-gray-100">${headers[i]}</th>`;
+        row.forEach(cell => table += `<td>${cell.toFixed(precision)}</td>`);
+        table += '</tr>';
+    });
+    if (footerData) {
+        table += '</tbody><tfoot><tr><th class="bg-gray-200">Jumlah</th>';
+        footerData.forEach(d => table += `<td>${d.toFixed(precision)}</td>`);
+        table += '</tr></tfoot>';
+    } else {
+        table += '</tbody>';
+    }
+    table += '</table></div>';
+    return table;
+}
+
+function displayResultsAHP(fullResults) {
+    const container = document.getElementById('resultsContainer');
+    container.innerHTML = '';
+
+    const critSection = document.createElement('div');
+    critSection.innerHTML = `
+        <h3 class="text-lg font-semibold text-gray-800 flex items-center"><i data-lucide="list-checks" class="mr-2 h-5 w-5 text-indigo-600"></i>Perhitungan Kriteria</h3>
+        <div class="mt-2 p-3 border rounded-md bg-white">
+            <p class="font-medium text-sm">Matriks Perbandingan Berpasangan:</p>
+            ${renderMatrixTable(criteria, fullResults.criteria.matrix)}
+            <p class="font-medium text-sm mt-4">Matriks Normalisasi & Bobot Prioritas:</p>
+            ${renderMatrixTable(criteria, fullResults.criteria.result.normMatrix, ['Bobot'], fullResults.criteria.result.colSums.concat([fullResults.criteria.result.weights.reduce((a,b)=>a+b,0)]))}
+             <p class="text-xs text-gray-600 mt-2">Rasio Konsistensi (CR):
+                <span class="${fullResults.criteria.result.CR > 0.1 ? 'text-red-500 font-bold' : 'text-green-600 font-semibold'}">
+                    ${fullResults.criteria.result.CR.toFixed(4)} ${fullResults.criteria.result.CR > 0.1 ? '(Tidak Konsisten)' : '(Konsisten)'}
+                </span>
+            </p>
+        </div>
+    `;
+    container.appendChild(critSection);
+
+    const altSection = document.createElement('div');
+    altSection.innerHTML = `<h3 class="text-lg font-semibold text-gray-800 mt-4 flex items-center"><i data-lucide="file-stack" class="mr-2 h-5 w-5 text-indigo-600"></i>Perhitungan Alternatif</h3>`;
+    container.appendChild(altSection);
+
+    criteria.forEach(crit => {
+        const altResult = fullResults.alternatives[crit];
+        const critDiv = document.createElement('div');
+        critDiv.className = "mt-2 p-3 border rounded-md bg-white";
+        critDiv.innerHTML = `
+            <h4 class="font-semibold text-md text-gray-700">Terhadap Kriteria: ${crit}</h4>
+            <p class="font-medium text-sm mt-2">Matriks Perbandingan Berpasangan:</p>
+            ${renderMatrixTable(alternatives, altResult.matrix)}
+            <p class="font-medium text-sm mt-4">Matriks Normalisasi & Bobot Prioritas:</p>
+            ${renderMatrixTable(alternatives, altResult.result.normMatrix, ['Bobot'], altResult.result.colSums.concat([altResult.result.weights.reduce((a,b)=>a+b,0)]))}
+            <p class="text-xs text-gray-600 mt-2">Rasio Konsistensi (CR):
+                <span class="${altResult.result.CR > 0.1 ? 'text-red-500 font-bold' : 'text-green-600 font-semibold'}">
+                    ${altResult.result.CR.toFixed(4)} ${altResult.result.CR > 0.1 ? '(Tidak Konsisten)' : '(Konsisten)'}
+                </span>
+            </p>
+        `;
+        altSection.appendChild(critDiv);
+    });
+
+    const rankingSection = document.createElement('div');
+    const winner = fullResults.ranked[0] ? fullResults.ranked[0].name : 'Tidak ada';
+    rankingSection.innerHTML = `
+        <h3 class="text-lg font-semibold text-gray-800 mt-4 flex items-center"><i data-lucide="trophy" class="mr-2 h-5 w-5 text-amber-500"></i>Hasil Akhir Peringkat</h3>
+        <div class="bg-white p-3 rounded-md border text-sm space-y-1 mt-2">
+            ${fullResults.ranked.map((res, i) => `
+                <div class="flex justify-between items-center py-2 ${i === 0 ? 'font-bold text-green-800 bg-green-100 rounded-md px-2 -mx-2' : ''}">
+                    <span class="flex items-center">
+                        <span class="w-6 text-center">${i + 1}.</span>
+                        <span>${res.name}</span>
+                    </span>
+                    <span class="font-mono">${res.score.toFixed(4)}</span>
+                </div>
+            `).join('')}
+        </div>
+        <div class="mt-4 text-center bg-green-100 p-3 rounded-lg">
+            <p class="text-sm text-green-800">Rekomendasi Alternatif Terbaik:</p>
+            <p class="font-bold text-xl text-green-800">${winner}</p>
+        </div>
+    `;
+    container.appendChild(rankingSection);
+    lucide.createIcons();
+}
+
+function downloadResultsAsPDF() {
+    const btn = document.getElementById('downloadPdfBtn');
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<i data-lucide="loader-2" class="animate-spin mr-2 h-5 w-5"></i><span>Mengunduh...</span>';
+    lucide.createIcons();
+    btn.disabled = true;
+
+    const element = document.getElementById('resultsToPrint');
+    html2canvas(element, { scale: 2, useCORS: true, windowWidth: element.scrollWidth, windowHeight: element.scrollHeight }).then(canvas => {
+        const imgData = canvas.toDataURL('image/png');
+        const pdf = new jsPDF({ orientation: 'p', unit: 'mm', format: 'a4' });
+        const pdfWidth = pdf.internal.pageSize.getWidth();
+        const pdfHeight = pdf.internal.pageSize.getHeight();
+        const imgProps = pdf.getImageProperties(imgData);
+        const imgRatio = imgProps.width / imgProps.height;
+
+        const imgWidth = pdfWidth - 20;
+        const imgHeight = imgWidth / imgRatio;
+        let heightLeft = imgHeight;
+        let position = 15;
+
+        pdf.setFont('Inter', 'bold');
+        pdf.text('Laporan Hasil Analisis AHP', pdfWidth / 2, 10, { align: 'center' });
+
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+        heightLeft -= (pdfHeight - position - 10);
+
+        while (heightLeft > 0) {
+            position = heightLeft - imgHeight;
+            pdf.addPage();
+            pdf.addImage(imgData, 'PNG', 10, position, imgWidth, imgHeight);
+            heightLeft -= pdfHeight;
+        }
+
+        pdf.save(`Hasil-AHP-${new Date().toISOString().slice(0,10)}.pdf`);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        lucide.createIcons();
+    }).catch(err => {
+        showMessage("Error", "Gagal membuat PDF. Coba lagi.", true);
+        console.error("Error creating PDF:", err);
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+        lucide.createIcons();
+    });
+}
+</script>
+</body>
+</html>
